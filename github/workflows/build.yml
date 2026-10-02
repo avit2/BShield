@@ -1,0 +1,47 @@
+name: Build BShield
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: unzip -q BShield-project.zip -d project
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Generate textures
+        working-directory: project
+        run: |
+          python3 -m pip install Pillow
+          python3 resource-pack/generate_textures.py
+          ls -l resource-pack/pack_icon.png resource-pack/textures/items/bshield_shield.png resource-pack/textures/entity/bshield_shield.png
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.1.0'
+
+      - name: Build
+        working-directory: project
+        run: gradle build --no-daemon --stacktrace
+
+      - name: Check JAR
+        run: ls -l project/build/libs/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BShield-jar
+          path: project/build/libs/BShield-1.0.0.jar
+          if-no-files-found: error
